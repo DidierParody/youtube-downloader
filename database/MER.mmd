@@ -1,0 +1,96 @@
+erDiagram
+    Usuario {
+        UUID id PK
+        VARCHAR email "Unique"
+        VARCHAR username "Unique"
+        VARCHAR password_hash
+        VARCHAR display_name
+        ENUM plan "free, basic, premium, enterprise"
+        ENUM status "active, suspended, cancelled"
+        BIGINT storage_used_bytes
+        BIGINT storage_quota_bytes
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+        TIMESTAMPTZ last_login_at
+    }
+
+    Video {
+        UUID id PK
+        VARCHAR youtube_video_id "Unique"
+        VARCHAR title
+        VARCHAR channel_name
+        INTEGER duration_seconds
+        TIMESTAMPTZ published_at
+        TIMESTAMPTZ created_at
+    }
+
+    Archivo {
+        UUID id PK
+        UUID video_id FK
+        VARCHAR sha256 "Unique"
+        VARCHAR object_key
+        ENUM storage_provider "r2, s3"
+        VARCHAR mime_type
+        ENUM file_type "video, audio, subtitle, thumbnail"
+        VARCHAR codec
+        INTEGER width
+        INTEGER height
+        NUMERIC fps
+        INTEGER bitrate
+        BIGINT size_bytes
+        INTEGER reference_count
+        TIMESTAMPTZ created_at
+    }
+
+    Descarga {
+        UUID id PK
+        UUID user_id FK
+        UUID video_id FK
+        UUID archivo_id FK
+        ENUM status "pending, processing, completed, failed, cancelled"
+        VARCHAR requested_quality
+        VARCHAR requested_format
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ finished_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    Embedding {
+        UUID id PK
+        UUID archivo_id FK
+        VARCHAR model_name
+        VECTOR embedding
+        TIMESTAMPTZ created_at
+    }
+
+    WorkerExecution {
+        UUID id PK
+        UUID download_id FK
+        VARCHAR worker_name
+        ENUM status "pending, running, completed, failed, retried"
+        INTEGER attempt
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ finished_at
+        INTEGER duration_ms
+        TEXT error_message
+    }
+
+    AuditEvent {
+        UUID id PK
+        UUID download_id FK
+        UUID worker_execution_id FK
+        ENUM event_type "DownloadRequested, DownloadStarted, DownloadCompleted, MetadataStarted, MetadataCompleted, OCRStarted, OCRCompleted, EmbeddingStarted, EmbeddingCompleted, OptimizationStarted, OptimizationCompleted, Stored, Completed, Failed, Retry"
+        ENUM status "pending, processing, completed, failed"
+        JSONB payload
+        TEXT error_message
+        TIMESTAMPTZ occurred_at
+    }
+
+    Usuario ||--o{ Descarga : "1:N"
+    Video ||--o{ Archivo : "1:N"
+    Video ||--o{ Descarga : "1:N"
+    Archivo ||--o{ Descarga : "1:N"
+    Archivo ||--o{ Embedding : "1:N"
+    Descarga ||--o{ WorkerExecution : "1:N"
+    WorkerExecution ||--o{ AuditEvent : "1:N"
