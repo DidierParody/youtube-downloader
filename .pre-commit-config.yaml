@@ -1,0 +1,70 @@
+# -----------------------------------------------------------------------------
+# Pre-commit hooks configuration
+# --------------------------------------------------------------------------
+# Install: pre-commit install
+# Run all: pre-commit run --all-files
+# --------------------------------------------------------------------------
+
+exclude: (vendor|\.git|dist|build|tmp|temp|node_modules)
+
+repos:
+  # ---------------------------------------------------------------------------
+  # General file checks
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Ensure files end with a newline
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-added-large-files
+        name: Prevent large files from being committed
+        args: [--maxkb=500]
+      - id: detect-private-key
+        name: Detect private keys
+      - id: check-merge-conflict
+        name: Check for merge conflict markers
+
+  # ---------------------------------------------------------------------------
+  # Go specific hooks
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.54.2
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run --config=.golangci.yml
+        language: golang
+        types: [go]
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        name: Go fmt
+      - id: go-vet
+        name: Go vet
+      - id: go-mod-tidy
+        name: Go mod tidy
+        entry: go mod tidy
+        language: system
+        files: go\.mod
+        pass_filenames: false
+
+  # ---------------------------------------------------------------------------
+  # Optional: Additional language support
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        name: Prettier (JS/TS/CSS/HTML/JSON/YAML/Markdown)
+        types_or: [javascript, ts, css, html, json, yaml, markdown]
+        exclude: ^(vendor|dist|build|node_modules)

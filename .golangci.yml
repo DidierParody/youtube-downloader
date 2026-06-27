@@ -1,0 +1,71 @@
+# -----------------------------------------------------------------------------
+# golangci-lint configuration for YouTube Downloader
+# --------------------------------------------------------------------------
+
+run:
+  # Default timeout for all linters
+  timeout: 5m
+
+  # Run linters in parallel
+  allow-parallel-runners: true
+
+  # Exclude test files and vendor directory
+  skip-dirs:
+    - vendor
+    - .git
+    - migrations
+    - tmp
+
+  # Exclude generated files
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_gen\\.go$"
+
+linters:
+  disable-all: true
+  enable:
+    - gofmt          # Formats Go source code
+    - govet          # Reports suspicious constructs
+    - staticcheck    # Advanced static analysis
+    - gocyclo        # Cyclomatic complexity
+    - ineffassign    # Detects ineffectual assignments
+    - misspell       # Finds commonly misspelled English words
+    - errcheck       # Checks for unchecked errors
+    - gosimple       # Simplifies code
+    - typecheck      # Type checking
+
+linters-settings:
+  # Cyclomatic complexity threshold
+  gocyclo:
+    min-complexity: 15
+
+  # Misspell configuration
+  misspell:
+    locale: US
+
+  # gofmt configuration
+  gofmt:
+    simplify: true
+
+  # govet configuration
+  govet:
+    enable-all: true
+
+  # errcheck configuration
+  errcheck:
+    # Report about not checking of errors in type assetions
+    check-type-assertions: true
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+    # Exclude known linter issues from specific files
+    - path: pkg/legacy/legacy.go
+      linters:
+        - gocyclo

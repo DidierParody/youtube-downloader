@@ -1,0 +1,70 @@
+# -----------------------------------------------------------------------------
+# .dockerignore
+# --------------------------------------------------------------------------
+# Files and directories to exclude from Docker build context
+# --------------------------------------------------------------------------
+
+# Version control
+.git
+.gitignore
+.gitattributes
+.github
+
+# IDE and editors
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependencies and build artifacts
+node_modules
+vendor
+dist
+build
+tmp
+temp
+*.log
+
+# Environment and secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Docker files (don't include in build context)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Testing
+coverage
+*.cover
+*.coverage
+*.coverprofile
+*.out
+testdata
+__tests__
+*_test.go
+
+# Documentation (optional, reduces build size)
+*.md
+docs
+
+# CI/CD
+.github
+.travis.yml
+.gitlab-ci.yml
+
+# Pre-commit
+.pre-commit-config.yaml
+
+# Misc
+Makefile
+*.sh
+scripts

@@ -1,0 +1,254 @@
+# -----------------------------------------------------------------------------
+# CI Pipeline for YouTube Downloader
+# -----------------------------------------------------------------------------
+# Triggers:
+#   - Push to main or develop branches
+#   - Pull requests targeting main or develop
+#
+# Jobs:
+#   - Lint Go code with golangci-lint
+#   - Run all Go tests
+#   - Build Docker images for backend and workers
+# --------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/ci.yml'
+      - '.golangci.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/ci.yml'
+      - '.golangci.yml'
+
+env:
+  GO_VERSION: '1.22'
+  GOLANGCI_LINT_VERSION: 'v1.54'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint all Go modules
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        module:
+          - backend
+          - workers
+          - data-platform/analytics-api
+          - data-platform/export-service
+          - data-platform/workers/audit-archiver
+          - data-platform/workers/embedding-regenerator
+          - data-platform/workers/report-generator
+          - data-platform/workers/silver-builder
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: ${{ matrix.module }}
+          args: --config=../.golangci.yml --timeout=5m
+
+  # ---------------------------------------------------------------------------
+  # Run tests for all Go modules
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: ytd_test
+          POSTGRES_PASSWORD: ytd_test_password
+          POSTGRES_DB: ytd_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      minio:
+        image: minio/minio:RELEASE.2024-01-05T22-17-24Z
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 15s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        module:
+          - backend
+          - workers
+          - data-platform/analytics-api
+          - data-platform/export-service
+          - data-platform/workers/audit-archiver
+          - data-platform/workers/embedding-regenerator
+          - data-platform/workers/report-generator
+          - data-platform/workers/silver-builder
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Test
+        env:
+          DATABASE_URL: postgresql://ytd_test:ytd_test_password@localhost:5432/ytd_test_db?sslmode=disable
+          REDIS_URL: redis://localhost:6379
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ''
+          S3_ENDPOINT: http://localhost:9000
+          S3_ACCESS_KEY_ID: minioadmin
+          S3_SECRET_ACCESS_KEY: minioadmin
+          S3_BUCKET_VIDEOS: ytd-videos
+          S3_BUCKET_THUMBNAILS: ytd-thumbnails
+          S3_BUCKET_EXPORTS: ytd-exports
+          S3_REGION: us-east-1
+          MINIO_HOST: localhost
+          MINIO_PORT: 9000
+          API_PORT: 3000
+          LOG_LEVEL: debug
+          JWT_SECRET: test-jwt-secret
+          REDPANDA_BROKERS: localhost:9092
+        run: |
+          cd ${{ matrix.module }}
+          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.module }}
+          path: ${{ matrix.module }}/coverage.out
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Build Docker images for backend and workers
+  # ---------------------------------------------------------------------------
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+
+    strategy:
+      matrix:
+        service:
+          - name: backend-api
+            dockerfile: backend/Dockerfile
+            build_args: |
+              BACKEND_PORT=3000
+          - name: workers
+            dockerfile: workers/Dockerfile
+          - name: analytics-api
+            dockerfile: data-platform/analytics-api/Dockerfile
+          - name: export-service
+            dockerfile: data-platform/export-service/Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.service.dockerfile }}
+          push: false
+          tags: |
+            ytd-${{ matrix.service.name }}:${{ github.sha }}
+            ytd-${{ matrix.service.name }}:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            ${{ matrix.service.build_args }}
+
+      - # Temporary fix for https://github.com/docker/build-push-action/issues/252
+        name: Move cache
+        run: |
+          if [ -d /tmp/.buildx-cache-new ]; then
+            rm -rf /tmp/.buildx-cache
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          fi

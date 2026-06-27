@@ -1,0 +1,67 @@
+# -----------------------------------------------------------------------------
+# .gitignore
+# --------------------------------------------------------------------------
+# Files and directories to exclude from Git version control
+# --------------------------------------------------------------------------
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.o
+*.a
+
+# Go build artifacts
+bin/
+*.bin
+
+# Environment and secrets (CRITICAL - NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+.secrets
+
+# Dependencies
+node_modules/
+Godeps/_workspace/
+vendor/
+
+# Build artifacts
+dist/
+build/
+tmp/
+temp/
+*.log
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker volumes (local data)
+volumes/
+data/
+
+# Testing
+coverage/
+*.cover
+*.coverage
+*.coverprofile
+testdata/
+__tests__/
+
+# CI/CD artifacts
+*.artifact
+
+# Misc
+*.bak
