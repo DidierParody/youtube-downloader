@@ -201,8 +201,8 @@ services:
     profiles:
       - full
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: backend/
+      dockerfile: Dockerfile
       target: development
     container_name: ytd-backend-api
     restart: unless-stopped
@@ -236,7 +236,7 @@ services:
     volumes:
       - ./backend:/app:rw
       - go_mod_cache:/go/pkg/mod
-    command: ["air", "-c", ".air.toml"]
+
 
   # ---------------------------------------------------------------------------
   # Workers (background job processors)
@@ -245,8 +245,8 @@ services:
     profiles:
       - full
     build:
-      context: .
-      dockerfile: workers/Dockerfile
+      context: workers/
+      dockerfile: Dockerfile
       target: development
     container_name: ytd-workers
     restart: unless-stopped
@@ -275,7 +275,7 @@ services:
     volumes:
       - ./workers:/app:rw
       - go_mod_cache:/go/pkg/mod
-    command: ["air", "-c", ".air.toml"]
+
 
   # ---------------------------------------------------------------------------
   # Data Platform - Analytics API
@@ -284,9 +284,8 @@ services:
     profiles:
       - full
     build:
-      context: .
-      dockerfile: data-platform/analytics-api/Dockerfile
-      target: development
+      context: data-platform/
+      dockerfile: analytics-api/Dockerfile
     container_name: ytd-analytics-api
     restart: unless-stopped
     ports:
@@ -309,7 +308,7 @@ services:
       - ./data-platform:/app:rw
       - duckdb_data:/duckdb/data
       - go_mod_cache:/go/pkg/mod
-    command: ["air", "-c", ".air.toml"]
+
 
   # ---------------------------------------------------------------------------
   # Data Platform - Export Service
@@ -318,9 +317,8 @@ services:
     profiles:
       - full
     build:
-      context: .
-      dockerfile: data-platform/export-service/Dockerfile
-      target: development
+      context: data-platform/
+      dockerfile: export-service/Dockerfile
     container_name: ytd-export-service
     restart: unless-stopped
     environment:
@@ -341,7 +339,25 @@ services:
       - ./data-platform:/app:rw
       - duckdb_data:/duckdb/data
       - go_mod_cache:/go/pkg/mod
-    command: ["air", "-c", ".air.toml"]
+
+  # ---------------------------------------------------------------------------
+  # Data Platform - DuckDB Worker
+  # ---------------------------------------------------------------------------
+  duckdb-worker:
+    profiles:
+      - full
+    build:
+      context: data-platform/
+      dockerfile: duckdb-worker/Dockerfile
+    container_name: ytd-duckdb-worker
+    restart: unless-stopped
+    environment:
+      <<: *common-variables
+      KAFKA_BROKERS: "redpanda:9092"
+    depends_on:
+      - redpanda
+    networks:
+      - ytd-network
 
 # -----------------------------------------------------------------------------
 # Networks

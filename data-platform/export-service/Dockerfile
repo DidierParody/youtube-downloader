@@ -1,22 +1,14 @@
+# Build stage
 FROM golang:1.23-alpine AS builder
-
 WORKDIR /app
-
-COPY data-platform/export-service/go.mod data-platform/export-service/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o export-service ./export-service/main.go
 
-COPY data-platform/export-service/ .
-
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o export-service ./cmd/api
-
+# Final stage
 FROM alpine:latest
-
 RUN apk --no-cache add ca-certificates
-
 WORKDIR /root/
-
-COPY --from=builder /app/export-service .
-
-EXPOSE 3002
-
-CMD ["./export-service"]
+COPY --from=builder /app/export-service ./export-service
+ENTRYPOINT ["./export-service"]

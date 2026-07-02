@@ -1,24 +1,14 @@
 # Build stage
 FROM golang:1.23-alpine AS builder
-
 WORKDIR /app
-
-COPY data-platform/analytics-api/go.mod data-platform/analytics-api/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o analytics-api ./analytics-api/main.go
 
-COPY data-platform/analytics-api/ .
-
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o analytics-api ./cmd/api
-
-# Runtime stage
+# Final stage
 FROM alpine:latest
-
 RUN apk --no-cache add ca-certificates
-
 WORKDIR /root/
-
-COPY --from=builder /app/analytics-api .
-
-EXPOSE 3001
-
-CMD ["./analytics-api"]
+COPY --from=builder /app/analytics-api ./analytics-api
+ENTRYPOINT ["./analytics-api"]
