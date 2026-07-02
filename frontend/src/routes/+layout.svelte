@@ -1,40 +1,34 @@
-<script lang="ts">
-  import '../app.css';
-  import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { browser } from '$app/environment'
-  import { goto } from '$app/navigation';
-  import Navbar from '$lib/components/Navbar.svelte';
-  import { isAuthenticated } from '$lib/stores/auth';
+<script>
+	import '../app.css';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { user, token } from '$lib/stores.js';
 
-  interface Props {
-    children?: import('svelte').Snippet;
-  }
+	onMount(() => {
+		if (typeof window !== 'undefined') {
+			const savedToken = localStorage.getItem('token');
+			const savedUser = localStorage.getItem('user');
+			if (savedToken) token.set(savedToken);
+			if (savedUser) user.set(JSON.parse(savedUser));
+		}
+	});
 
-  let { children }: Props = $props();
-
-  $effect(() => {
-    if (browser) {
-      const path = $page.url.pathname;
-      const requiresAuth = ['/downloads', '/videos'].some((prefix) =>
-        path.startsWith(prefix)
-      );
-      const isAuthPage = path.startsWith('/auth/');
-
-      if (requiresAuth && !$isAuthenticated) {
-        goto('/auth/login');
-      } else if (isAuthPage && $isAuthenticated) {
-        goto('/');
-      }
-    }
-  });
+	function logout() {
+		user.set(null);
+		token.set(null);
+		localStorage.removeItem('token');
+		localStorage.removeItem('user');
+		goto('/login');
+	}
 </script>
 
-<div class="min-h-screen bg-gray-50">
-  <Navbar />
-  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    {#if children}
-      {@render children()}
-    {/if}
-  </main>
-</div>
+<header>
+	<h1>🎬 YouTube Downloader</h1>
+	{#if $user}
+		<button class="btn" on:click={logout}>Logout ({$user.username})</button>
+	{/if}
+</header>
+
+<main class="container">
+	<slot />
+</main>

@@ -1,53 +1,61 @@
-<script lang="ts">
-  import DownloadForm from '$lib/components/DownloadForm.svelte';
-  import { onMount } from 'svelte';
-  import { getVideos } from '$lib/api/videos';
-  import VideoCard from '$lib/components/VideoCard.svelte';
-  import type { Video } from '$lib/types';
+<script>
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { user, token } from '$lib/stores.js';
+	import { getDownloads, createDownload } from '$lib/api.js';
 
-  let videos: Video[] = $state([]);
-  let loading = $state(true);
-  let error: string | null = $state(null);
+	let downloads = [];
+	let url = '';
+	let message = '';
 
-  onMount(async () => {
-    try {
-      videos = await getVideos();
-    } catch (err) {
-      error = 'Failed to load video previews';
-    } finally {
-      loading = false;
-    }
-  });
+	onMount(async () => {
+		if (!$token) {
+			goto('/login');
+			return;
+		}
+		const data = await getDownloads($token);
+		if (data.downloads) {
+			downloads = data.downloads;
+		}
+	});
 
-  function handleVideoClick(video: Video) {
-    window.location.href = `/videos/${video.id}`;
-  }
+	async function handleSubmit() {
+		if (!url) return;
+		const res = await createDownload(url, $token);
+		if (res.message) {
+			message = res.message;
+			const data = await getDownloads($token);
+			if (data.downloads) downloads = data.downloads;
+			url = '';
+		}
+	}
 </script>
 
 <svelte:head>
-  <title>YouTube Downloader</title>
+	<title>Dashboard - YouTube Downloader</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl text-center">
-  <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-    Download YouTube Videos
-  </h1>
-  <p class="mt-4 text-lg text-gray-600">
-    Fast, simple, and free. Just paste a YouTube URL to get started.
-  </p>
-</div>
+<h2>Your Downloads</h2>
 
-<div class="mt-12">
-  <DownloadForm />
-</div>
+<form on:submit|preventDefault={handleSubmit} class="form">
+	<h3>Add New Download</h3>
+	<input type="text" bind:value={url} placeholder="YouTube URL" required />
+	<button type="submit" class="btn">Download</button>
+</form>
 
-{#if videos.length > 0}
-  <div class="mt-12">
-    <h2 class="mb-6 text-xl font-semibold text-gray-900">Recent Downloads</h2>
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {#each videos as video (video.id)}
-        <VideoCard {video} onClick={handleVideoClick} />
-      {/each}
-    </div>
-  </div>
+{#if message}
+	<div class="alert success">{message}</div>
 {/if}
+
+<div>
+	{#each downloads as dl}
+		<div class="card">
+			<h4>{dl.title || 'Untitled'}</h4>
+			<p>URL: {dl.url}</p>
+			<p>Status: <strong>{dl.status}</strong></p>
+			<p>Created: {new Date(dl.created_at).toLocaleString()}</p>
+		</div>
+	{:else}
+		<p>No downloads yet.</p>
+	{/each}
+</div>
