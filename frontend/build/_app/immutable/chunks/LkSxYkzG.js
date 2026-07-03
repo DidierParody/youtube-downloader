@@ -1,0 +1,1 @@
+import{w as t}from"./j7kPOhj-.js";const o=t(null),n=t(typeof window<"u"?localStorage.getItem("token"):null);o.subscribe(e=>{typeof window<"u"&&e&&localStorage.setItem("user",JSON.stringify(e))});n.subscribe(e=>{typeof window<"u"&&e&&localStorage.setItem("token",e)});export{n as t,o as u};
