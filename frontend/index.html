@@ -149,7 +149,7 @@ th { color:var(--muted); font-weight:500; font-size:.875rem; }
   /* ---------- ROUTER ---------- */
   const authView = document.getElementById('authView');
   const appView = document.getElementById('appView');
-  const path = window.location.pathname;
+  const hash = window.location.hash.replace('#', '') || '/';
 
   function showLogin() {
     authView.classList.add('active');
@@ -187,8 +187,8 @@ th { color:var(--muted); font-weight:500; font-size:.875rem; }
   }
 
   /* simple path routing */
-  if(path === '/login') showLogin();
-  else if(path === '/register') showRegister();
+  if(hash === '/login') showLogin();
+  else if(hash === '/register') showRegister();
   else showApp();
 
   /* ---------- EVENTS ---------- */
@@ -206,11 +206,11 @@ th { color:var(--muted); font-weight:500; font-size:.875rem; }
   document.getElementById('authForm').onsubmit = e => {
     e.preventDefault();
     showApp();
-    window.history.replaceState({}, '', '/');
+    window.location.hash = '#/';
   };
 
   function switchView(v) { console.log('View:', v); }
-  function logout() { showLogin(); window.history.replaceState({}, '', '/login'); }
+  function logout() { showLogin(); window.location.hash = '#/login'; }
 </script>
 
 </body>
