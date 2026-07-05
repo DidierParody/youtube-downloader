@@ -156,6 +156,60 @@ func handleCreateDownload(c *fiber.Ctx) error {
 	})
 }
 
+func handleGetDownloads(c *fiber.Ctx) error {
+	authHeader := c.Get("Authorization")
+	if len(authHeader) < 8 || authHeader[:7] != "Bearer " {
+		return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+	}
+	tokenString := authHeader[7:]
+
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(getEnv("JWT_SECRET", "dev-secret")), nil
+	})
+	if err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "invalid token"})
+	}
+
+	userID, ok := claims["sub"].(string)
+	if !ok {
+		return c.Status(401).JSON(fiber.Map{"error": "invalid token claims"})
+	}
+
+	rows, err := dbPool.Query(context.Background(),
+		`SELECT id, status, requested_quality, requested_format, created_at FROM "Descarga" WHERE user_id = $1 ORDER BY created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		slog.Error("failed to query downloads", "error", err)
+		return c.Status(500).JSON(fiber.Map{"error": "failed to query downloads"})
+	}
+	defer rows.Close()
+
+	type Download struct {
+		ID                 string    `json:"id"`
+		Status             string    `json:"status"`
+		RequestedQuality   string    `json:"requested_quality"`
+		RequestedFormat    string    `json:"requested_format"`
+		CreatedAt          time.Time `json:"created_at"`
+	}
+
+	var downloads []Download
+	for rows.Next() {
+		var d Download
+		if err := rows.Scan(&d.ID, &d.Status, &d.RequestedQuality, &d.RequestedFormat, &d.CreatedAt); err != nil {
+			slog.Error("failed to scan download", "error", err)
+			continue
+		}
+		downloads = append(downloads, d)
+	}
+
+	if downloads == nil {
+		downloads = []Download{}
+	}
+	return c.JSON(fiber.Map{"downloads": downloads})
+}
+
 func handleGetDownload(c *fiber.Ctx) error {
 	downloadID := c.Params("id")
 
@@ -204,6 +258,7 @@ func main() {
 	api.Post("/auth/register", handleRegister)
 	api.Post("/auth/login", handleLogin)
 	api.Post("/downloads", handleCreateDownload)
+	api.Get("/downloads", handleGetDownloads)
 	api.Get("/downloads/:id", handleGetDownload)
 
 	port := getEnv("PORT", "3000")

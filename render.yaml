@@ -2,8 +2,7 @@ services:
   - type: web
     name: youtube-downloader-backend
     env: docker
-    root: backend
-    dockerfilePath: ./Dockerfile
+    dockerContext: backend
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
