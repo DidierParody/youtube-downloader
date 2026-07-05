@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: youtube-downloader-backend
+    env: docker
+    root: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3000
+    plan: free
