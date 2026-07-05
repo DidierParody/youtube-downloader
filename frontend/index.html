@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Downloader</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --border: #222;
+  --text: #e2e2e2;
+  --muted: #888;
+  --primary: #6366f1;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+body { background:var(--bg); color:var(--text); min-height:100vh; display:flex; }
+.sidebar { width:260px; background:var(--surface); border-right:1px solid var(--border); padding:24px; display:flex; flex-direction:column; gap:16px; }
+.sidebar h2 { font-size:1.25rem; display:flex; align-items:center; gap:8px; }
+.sidebar a { color:var(--muted); text-decoration:none; padding:10px 14px; border-radius:var(--radius); display:flex; align-items:center; gap:10px; transition:.2s; }
+.sidebar a:hover, .sidebar a.active { color:var(--text); background:#1f1f1f; }
+.sidebar .pro { margin-top:auto; background:#1f1f1f; padding:16px; border-radius:var(--radius); text-align:center; }
+.sidebar .pro button { background:var(--primary); color:#fff; border:none; padding:10px 20px; border-radius:var(--radius); cursor:pointer; font-weight:600; width:100%; }
+.main { flex:1; padding:32px; overflow-y:auto; }
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.topbar h1 { font-size:1.5rem; }
+.btn { background:var(--primary); color:#fff; border:none; padding:10px 24px; border-radius:var(--radius); cursor:pointer; font-weight:500; }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:8px; }
+.kpi-card h3 { font-size:.875rem; color:var(--muted); font-weight:400; }
+.kpi-card .value { font-size:1.75rem; font-weight:700; }
+.kpi-card .change { font-size:.875rem; }
+.kpi-card .change.up { color:#22c55e; }
+.kpi-card .change.down { color:#ef4444; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:12px; border-bottom:1px solid var(--border); }
+th { color:var(--muted); font-weight:500; font-size:.875rem; }
+.badge { padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; }
+.badge-success { background:rgba(34,197,94,.15); color:#22c55e; }
+.badge-pending { background:rgba(234,179,8,.15); color:#eab308; }
+.badge-error { background:rgba(239,68,68,.15); color:#ef4444; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; justify-content:center; align-items:center; z-index:100; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; width:100%; max-width:480px; }
+.modal h2 { margin-bottom:16px; }
+.input-group { margin-bottom:16px; }
+.input-group label { display:block; margin-bottom:6px; color:var(--muted); font-size:.875rem; }
+.input-group input, .input-group select { width:100%; padding:10px 14px; background:#1f1f1f; border:1px solid var(--border); border-radius:var(--radius); color:var(--text); outline:none; }
+.input-group input:focus { border-color:var(--primary); }
+.flex-row { display:flex; gap:12px; }
+.flex-row .input-group { flex:1; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <h2>▶️ QuickTube</h2>
+  <nav>
+    <a class="active" href="#">📊 Dashboard</a>
+    <a href="#">📥 Downloads</a>
+    <a href="#">⭐ Favorites</a>
+    <a href="#">🔍 Analytics</a>
+    <a href="#">👤 Profile</a>
+  </nav>
+  <div class="pro">
+    <h3>Pro plan</h3>
+    <p>Get more features</p>
+    <button>Upgrade</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1>Dashboard</h1>
+    <button class="btn" id="openModal">+ New Download</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><h3>Total Downloads</h3><div class="value">24</div><div class="change up">↑ 120%</div></div>
+    <div class="kpi-card"><h3>Storage Used</h3><div class="value">1.2 GB</div><div class="change down">↓ 8%</div></div>
+    <div class="kpi-card"><h3>Pending Tasks</h3><div class="value">3</div><div class="change down">↓ 20%</div></div>
+    <div class="kpi-card"><h3>API Usage</h3><div class="value">87%</div></div>
+  </div>
+
+  <h2 style="margin-bottom:16px;font-size:1.125rem">Recent Downloads</h2>
+  <table>
+    <thead><tr><th>Title</th><th>Size</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td>Introduction to Go...</td><td>156 MB</td><td><span class="badge badge-success">Completed</span></td><td>2023-10-24</td></tr>
+      <tr><td>Advanced Goroutines</td><td>243 MB</td><td><span class="badge badge-pending">Pending</span></td><td>2023-10-23</td></tr>
+      <tr><td>Concurrency Patterns</td><td>89 MB</td><td><span class="badge badge-error">Failed</span></td><td>2023-10-22</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>New Download</h2>
+    <div class="input-group"><label>Video URL</label><input placeholder="https://youtube.com/..." id="videoUrl"></div>
+    <div class="flex-row">
+      <div class="input-group">
+        <label>Quality</label>
+        <select><option>720p (HD)</option><option>1080p (FHD)</option><option>1440p (QHD)</option><option>4K (UHD)</option></select>
+      </div>
+      <div class="input-group">
+        <label>Format</label>
+        <select><option>MP4</option><option>MP3</option><option>WEBM</option></select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+      <button class="btn btn-outline" id="closeModal">Cancel</button>
+      <button class="btn" id="startDownload">Start Download</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('modal');
+  document.getElementById('openModal').onclick = () => modal.style.display = 'flex';
+  document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
+  document.getElementById('startDownload').onclick = () => {
+    const url = document.getElementById('videoUrl').value;
+    if(url) { alert('Download started for: ' + url); modal.style.display = 'none'; }
+    else alert('Please enter a URL');
+  };
+  window.onclick = e => { if(e.target === modal) modal.style.display = 'none'; };
+</script>
+
+</body>
+</html>
