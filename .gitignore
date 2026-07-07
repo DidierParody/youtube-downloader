@@ -3,3 +3,4 @@ frontend/.svelte-kit/
 *.log
 *.exe
 backend/backend.exe
+qr_dipper.png
