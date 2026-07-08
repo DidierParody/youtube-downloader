@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Ping Render backend
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://youtube-downloader.onrender.com/health)
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://youtube-downloader-heke.onrender.com/health)
           echo "Health check status: $response"
           if [ "$response" != "200" ]; then
             echo "WARNING: Backend responded with $response"
